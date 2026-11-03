@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 10000;
 
 app.use(express.json());
 
-// Homepage - Seedha server se design load hoga
+// Modern ChatGPT Style UI Homepage
 app.get('/', (req, res) => {
     res.send(`
     <!DOCTYPE html>
@@ -15,56 +15,95 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Nova AI Chatbot</title>
+        <title>Nova AI - Gemini Chatbot</title>
         <style>
-            body { font-family: Arial, sans-serif; background: #0e0e0e; color: #fff; margin: 0; padding: 20px; display: flex; flex-direction: column; height: 100vh; box-sizing: border-box; }
-            h2 { text-align: center; color: #00ffcc; }
-            #chat-container { flex: 1; overflow-y: auto; background: #1a1a1a; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
-            .message { margin-bottom: 12px; padding: 10px; border-radius: 6px; max-width: 80%; line-height: 1.4; }
-            .user { background: #007bff; margin-left: auto; text-align: right; }
-            .bot { background: #333; margin-right: auto; }
-            #input-container { display: flex; gap: 10px; }
-            input { flex: 1; padding: 12px; border-radius: 6px; border: 1px solid #444; background: #222; color: #fff; font-size: 16px; }
-            button { padding: 12px 20px; background: #00ffcc; color: #000; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-            button:hover { background: #00b386; }
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #343541; color: #ececf1; display: flex; flex-direction: column; height: 100vh; }
+            header { background: #202123; padding: 15px; text-align: center; border-bottom: 1px solid #4d4d4f; font-size: 18px; font-weight: bold; color: #10a37f; }
+            #chat-container { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+            .message-row { display: flex; width: 100%; justify-content: flex-start; }
+            .message-row.user { justify-content: flex-end; }
+            .message { max-width: 75%; padding: 15px 20px; border-radius: 12px; font-size: 15px; line-height: 1.6; word-break: break-word; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+            .user .message { background: #10a37f; color: #fff; border-bottom-right-radius: 2px; }
+            .bot .message { background: #444654; color: #ececf1; border-bottom-left-radius: 2px; border: 1px solid #565869; }
+            #input-area { background: #343541; padding: 20px; border-top: 1px solid #4d4d4f; display: flex; justify-content: center; }
+            .input-wrapper { display: flex; width: 100%; max-width: 800px; background: #40414f; border-radius: 8px; border: 1px solid #565869; padding: 8px 12px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+            input { flex: 1; background: transparent; border: none; color: #fff; font-size: 16px; outline: none; padding: 8px; }
+            button { background: #10a37f; color: #white; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
+            button:hover { background: #0d8c6d; }
+            .typing { font-style: italic; color: #8e8ea0; }
         </style>
     </head>
     <body>
-        <h2>Nova AI (Gemini Powered)</h2>
-        <div id="chat-container"></div>
-        <div id="input-container">
-            <input type="text" id="user-input" placeholder="Yahan apna sawal likhein..." autocomplete="off">
-            <button onclick="sendMessage()">Bhejein</button>
+        <header>Nova AI (Powered by Gemini)</header>
+        <div id="chat-container">
+            <div class="message-row bot">
+                <div class="message">Hello! Main Nova AI hoon. Aaj main aapki kya madad kar sakta hoon?</div>
+            </div>
+        </div>
+        <div id="input-area">
+            <div class="input-wrapper">
+                <input type="text" id="user-input" placeholder="Message Nova AI..." autocomplete="off">
+                <button onclick="sendMessage()">Bhejein</button>
+            </div>
         </div>
 
         <script>
             async function sendMessage() {
                 const input = document.getElementById('user-input');
                 const chatContainer = document.getElementById('chat-container');
-                const messageText = input.value.trim();
-                if (!messageText) return;
+                const text = input.value.trim();
+                if (!text) return;
 
-                chatContainer.innerHTML += \`<div class="message user">\${messageText}</div>\`;
+                // User message UI
+                chatContainer.innerHTML += \`
+                    <div class="message-row user">
+                        <div class="message">\${escapeHtml(text)}</div>
+                    \</div>\`;
                 input.value = '';
                 chatContainer.scrollTop = chatContainer.scrollHeight;
 
+                // Typing indicator
+                const typingId = 'typing-' + Date.now();
+                chatContainer.innerHTML += \`
+                    <div class="message-row bot" id="\${typingId}">
+                        <div class="message typing">Nova AI soch raha hai...</div>
+                    \</div>\`;
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+
                 try {
-                    const response = await fetch('/api/chat', {
+                    const res = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ message: messageText })
+                        body: JSON.stringify({ message: text })
                     });
-                    const data = await response.json();
+                    const data = await res.json();
                     
+                    document.getElementById(typingId).remove();
+
                     if (data.reply) {
-                        chatContainer.innerHTML += \`<div class="message bot">\${data.reply}</div>\`;
+                        chatContainer.innerHTML += \`
+                            <div class="message-row bot">
+                                <div class="message">\${escapeHtml(data.reply)}</div>
+                            \</div>\`;
                     } else {
-                        chatContainer.innerHTML += \`<div class="message bot">Error: \${data.error || 'Kuch ghalat ho gaya.'}</div>\`;
+                        chatContainer.innerHTML += \`
+                            <div class="message-row bot">
+                                <div class="message" style="color: #ff6b6b;">Error: \${data.error || 'Kuch ghalat ho gaya.'}</div>
+                            \</div>\`;
                     }
                 } catch (e) {
-                    chatContainer.innerHTML += \`<div class="message bot">Server se connect nahi ho saka.</div>\`;
+                    document.getElementById(typingId).remove();
+                    chatContainer.innerHTML += \`
+                        <div class="message-row bot">
+                            <div class="message" style="color: #ff6b6b;">Server connection error.</div>
+                        \</div>\`;
                 }
                 chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            function escapeHtml(text) {
+                return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
             }
 
             document.getElementById('user-input').addEventListener('keypress', function(e) {
@@ -76,31 +115,35 @@ app.get('/', (req, res) => {
     `);
 });
 
-// Gemini API Endpoint
+// Gemini API Endpoint (Updated with correct v1 format & model)
 app.post('/api/chat', async (req, res) => {
     try {
         const apiKey = process.env.GEMINI_API_KEY;
         if (!apiKey) {
-            return res.status(500).json({ error: 'GEMINI_API_KEY set nahi hai Render environment variables mein.' });
+            return res.status(500).json({ error: 'GEMINI_API_KEY environment variable set nahi hai.' });
         }
 
         const userMessage = req.body.message || '';
         
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: userMessage }] }]
+                contents: [{
+                    parts: [{ text: userMessage }]
+                }]
             })
         });
 
         const data = await response.json();
         
-        if (data.candidates && data.candidates[0].content.parts[0].text) {
+        if (data.candidates && data.candidates[0].content && data.candidates[0].content.parts[0].text) {
             const reply = data.candidates[0].content.parts[0].text;
             res.json({ reply });
+        } else if (data.error) {
+            res.status(500).json({ error: data.error.message || 'Gemini API Error' });
         } else {
-            res.status(500).json({ error: 'Gemini API se response hasil karne mein masla hua.' });
+            res.status(500).json({ error: 'API se ghalat response mila hai.' });
         }
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -108,5 +151,5 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-    console.log(`Nova AI server port ${PORT} par chal raha hai.`);
+    console.log(`Server port ${PORT} par chal raha hai.`);
 });
